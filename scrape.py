@@ -37,10 +37,22 @@ CLIENT_ID = os.environ.get("SPORTLINK_CLIENT_ID")
 TEAM_NAME = "ST SO Soest/VVZ'49 O14-6"
 
 # VVZ'49's eigen accommodatie (Sportpark Zonnegloren) -- vast vertrekpunt
-# voor het carpoolen bij uitwedstrijden.
+# voor het carpoolen bij uitwedstrijden. De KNVB noemt de accommodatie zelf
+# "Sportpark Zonnegloren", maar Google Maps/Calendar herkent de plek -- met
+# foto en kaartje -- pas onder de officiele clubnaam.
+THUIS_ACCOMMODATIE_KNVB = "Sportpark Zonnegloren"
+THUIS_CLUBNAAM = "Sportvereniging Vrienden van Zonnegloren"
 THUIS_STRAAT = "Eemweg 1"
 THUIS_PLAATS = "3764DG SOEST"
-UIT_VERZAMELPLEK = f"Parkeerplaats VVZ'49, Sportpark Zonnegloren, {THUIS_STRAAT}, {THUIS_PLAATS}"
+UIT_VERZAMELPLEK = f"{THUIS_CLUBNAAM} (parkeerplaats), {THUIS_STRAAT}, {THUIS_PLAATS}"
+
+
+def display_accommodatie(naam: str) -> str:
+    """Vervangt de KNVB-naam van VVZ'49's eigen accommodatie door de naam
+    zoals Google Maps 'm herkent, zodat Google Calendar er een kaartje met
+    foto bij toont. Voor andere sportparken (uitwedstrijden) blijft de
+    KNVB-naam staan -- daar is geen betrouwbare 1-op-1 vertaling van bekend."""
+    return THUIS_CLUBNAAM if naam == THUIS_ACCOMMODATIE_KNVB else naam
 
 TZ_AMS = ZoneInfo("Europe/Amsterdam")
 
@@ -151,7 +163,7 @@ def vevent(uid: str, dtstamp: str, start: datetime, end: datetime, summary: str,
     return lines
 
 
-UIT_MAPS_URL = maps_url("Sportpark Zonnegloren", THUIS_STRAAT, THUIS_PLAATS)
+UIT_MAPS_URL = maps_url(THUIS_CLUBNAAM, THUIS_STRAAT, THUIS_PLAATS)
 
 
 def build_ics(state: dict, now: datetime) -> str:
@@ -170,8 +182,9 @@ def build_ics(state: dict, now: datetime) -> str:
             continue
 
         cancelled = bool(entry["status"]) and "afgelast" in entry["status"].lower()
-        location = ", ".join(p for p in [entry["accommodatie"], entry["veld"], entry["plaats"]] if p)
-        match_maps_url = maps_url(entry["accommodatie"], entry["straat"], entry["adresplaats"])
+        accommodatie_display = display_accommodatie(entry["accommodatie"])
+        location = ", ".join(p for p in [accommodatie_display, entry["veld"], entry["plaats"]] if p)
+        match_maps_url = maps_url(accommodatie_display, entry["straat"], entry["adresplaats"])
         summary = f"{entry['thuisteam']} - {entry['uitteam']}"
         if cancelled:
             summary = f"AFGELAST: {summary}"
