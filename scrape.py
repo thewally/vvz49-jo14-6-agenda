@@ -31,6 +31,8 @@ from zoneinfo import ZoneInfo
 API_BASE = "https://data.sportlink.com"
 CLIENT_ID = "***REMOVED***"  # publiek, uit so-soest.nl/assets/js/global.js
 TEAM_NAME = "ST SO Soest/VVZ'49 O14-6"
+THUIS_VENUE = "Sportpark Zonnegloren, Soest"
+UIT_VERZAMELPLEK = f"Parkeerplaats VVZ'49, {THUIS_VENUE}"
 
 TZ_AMS = ZoneInfo("Europe/Amsterdam")
 
@@ -144,17 +146,21 @@ def build_ics(state: dict, now: datetime) -> str:
         description = "\n".join(p for p in desc_parts if p)
 
         # Verzamelen: van verzameltijd tot aanvangstijd (alleen als bekend en voor kickoff ligt).
+        # Bij thuiswedstrijden in de kleedkamer op de eigen accommodatie, bij
+        # uitwedstrijden op de parkeerplaats van VVZ'49 (vertrekpunt voor carpoolen).
+        is_thuis = entry["thuisteam"] == TEAM_NAME
         if entry["verzameltijd"] and not cancelled:
             vh, vm = (int(x) for x in entry["verzameltijd"].split(":"))
             gather_start = kickoff.replace(hour=vh, minute=vm, second=0, microsecond=0)
             if gather_start < kickoff:
+                gather_location = f"Kleedkamer, {location}" if is_thuis else UIT_VERZAMELPLEK
                 lines += vevent(
                     uid=f"{uid}-verzamelen@vvz49-jo14-6",
                     dtstamp=dtstamp,
                     start=gather_start,
                     end=kickoff,
                     summary=f"Verzamelen: {entry['thuisteam']} - {entry['uitteam']}",
-                    location=location,
+                    location=gather_location,
                 )
 
         lines += vevent(
