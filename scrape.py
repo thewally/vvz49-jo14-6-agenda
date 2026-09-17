@@ -10,10 +10,13 @@ toegankelijk met de client_id die gewoon in hun publieke JS-bestand
 staat (assets/js/global.js) -- geen account of betaalde Voetbal.nl-app
 nodig.
 
-We zoeken elke run opnieuw de teamcode/poulecode op (die wisselt
-halverwege het seizoen als de KNVB een nieuwe competitiefase indeelt),
-halen daarmee het programma op, en houden alles bij in matches.json
-zodat wedstrijden uit afgelopen fases niet verdwijnen. Daarna wordt
+We zoeken elke run opnieuw de teamcode op (stabieler dan poulecode, die
+halverwege het seizoen wisselt als de KNVB een nieuwe competitiefase
+indeelt) en halen daarmee het per-team programma op. Dat bevat naast
+datum/tijd ook de officiele verzameltijd, scheidsrechter en veld -- dus
+we zetten per wedstrijd twee losse agenda-items: "Verzamelen" en de
+wedstrijd zelf. Alles wordt bijgehouden in matches.json zodat
+wedstrijden niet verdwijnen zodra een fase/poule wisselt. Daarna wordt
 matches.ics gegenereerd voor abonnement in Google Calendar.
 """
 import json
@@ -43,20 +46,16 @@ def api_get(article: str, **params) -> object:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def find_poulecode() -> int:
+def find_teamcode() -> int:
     teams = api_get("teams")
-    matches = [t for t in teams if t.get("teamnaam") == TEAM_NAME and t.get("poulecode")]
+    matches = [t for t in teams if t.get("teamnaam") == TEAM_NAME and t.get("teamsoort") == "bond"]
     if not matches:
-        raise RuntimeError(f"Team '{TEAM_NAME}' niet gevonden in teams-lijst (competitiefase-overgang?).")
-    # Er kunnen meerdere regels zijn (competitie + beker); neem de regulier-competitie.
-    for t in matches:
-        if t.get("competitiesoort") == "regulier":
-            return t["poulecode"]
-    return matches[0]["poulecode"]
+        raise RuntimeError(f"Team '{TEAM_NAME}' niet gevonden in teams-lijst.")
+    return matches[0]["teamcode"]
 
 
-def fetch_schedule(poulecode: int) -> list[dict]:
-    return api_get("poule-programma", poulecode=poulecode, aantaldagen=365, eigenwedstrijden="ja")
+def fetch_schedule(teamcode: int) -> list[dict]:
+    return api_get("programma", teamcode=teamcode, aantaldagen=365, aantalregels=200, eigenwedstrijden="JA")
 
 
 def load_state() -> dict:
@@ -79,9 +78,12 @@ def merge(state: dict, matches: list[dict], now_iso: str) -> dict:
                 "thuisteam": m["thuisteam"],
                 "uitteam": m["uitteam"],
                 "accommodatie": m.get("accommodatie") or "",
+                "veld": m.get("veld") or "",
                 "plaats": m.get("plaats") or "",
                 "status": m.get("status") or "",
                 "wedstrijdnummer": m.get("wedstrijdnummer") or "",
+                "verzameltijd": m.get("verzameltijd") or "",
+                "scheidsrechter": m.get("scheidsrechter") or "",
             }
         )
         entry["last_seen"] = now_iso
@@ -94,8 +96,28 @@ def ics_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", "\\n")
 
 
+def vevent(uid: str, dtstamp: str, start: datetime, end: datetime, summary: str, location: str = "", description: str = "", cancelled: bool = False) -> list[str]:
+    lines = [
+        "BEGIN:VEVENT",
+        f"UID:{uid}",
+        f"DTSTAMP:{dtstamp}",
+        f"DTSTART:{start.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+        f"DTEND:{end.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+        f"SUMMARY:{ics_escape(summary)}",
+    ]
+    if location:
+        lines.append(f"LOCATION:{ics_escape(location)}")
+    if description:
+        lines.append(f"DESCRIPTION:{ics_escape(description)}")
+    if cancelled:
+        lines.append("STATUS:CANCELLED")
+    lines.append("END:VEVENT")
+    return lines
+
+
 def build_ics(state: dict, now: datetime) -> str:
     cutoff = (now - timedelta(days=60)).date()
+    dtstamp = now.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
@@ -104,36 +126,47 @@ def build_ics(state: dict, now: datetime) -> str:
         "X-WR-CALNAME:ST SO Soest/VVZ'49 O14-6",
     ]
     for uid, entry in sorted(state.items(), key=lambda kv: kv[1]["wedstrijddatum"]):
-        start_local = datetime.fromisoformat(entry["wedstrijddatum"]).astimezone(TZ_AMS)
-        if start_local.date() < cutoff:
+        kickoff = datetime.fromisoformat(entry["wedstrijddatum"]).astimezone(TZ_AMS)
+        if kickoff.date() < cutoff:
             continue
-        end_local = start_local + timedelta(minutes=90)
-        start_utc = start_local.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        end_utc = end_local.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
+        cancelled = bool(entry["status"]) and "afgelast" in entry["status"].lower()
+        location = ", ".join(p for p in [entry["accommodatie"], entry["veld"], entry["plaats"]] if p)
         summary = f"{entry['thuisteam']} - {entry['uitteam']}"
-        status = entry["status"]
-        if status and "afgelast" in status.lower():
+        if cancelled:
             summary = f"AFGELAST: {summary}"
 
-        location = ", ".join(p for p in [entry["accommodatie"], entry["plaats"]] if p)
-        desc_parts = [p for p in [f"Status: {status}" if status else "", f"Wedstrijdnummer: {entry['wedstrijdnummer']}" if entry["wedstrijdnummer"] else ""] if p]
-
-        lines += [
-            "BEGIN:VEVENT",
-            f"UID:{uid}@vvz49-jo14-6",
-            f"DTSTAMP:{now.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
-            f"DTSTART:{start_utc}",
-            f"DTEND:{end_utc}",
-            f"SUMMARY:{ics_escape(summary)}",
+        desc_parts = [
+            f"Status: {entry['status']}" if entry["status"] else "",
+            f"Scheidsrechter: {entry['scheidsrechter']}" if entry["scheidsrechter"] else "",
+            f"Wedstrijdnummer: {entry['wedstrijdnummer']}" if entry["wedstrijdnummer"] else "",
         ]
-        if location:
-            lines.append(f"LOCATION:{ics_escape(location)}")
-        if desc_parts:
-            lines.append(f"DESCRIPTION:{ics_escape(chr(10).join(desc_parts))}")
-        if status and "afgelast" in status.lower():
-            lines.append("STATUS:CANCELLED")
-        lines.append("END:VEVENT")
+        description = "\n".join(p for p in desc_parts if p)
+
+        # Verzamelen: van verzameltijd tot aanvangstijd (alleen als bekend en voor kickoff ligt).
+        if entry["verzameltijd"] and not cancelled:
+            vh, vm = (int(x) for x in entry["verzameltijd"].split(":"))
+            gather_start = kickoff.replace(hour=vh, minute=vm, second=0, microsecond=0)
+            if gather_start < kickoff:
+                lines += vevent(
+                    uid=f"{uid}-verzamelen@vvz49-jo14-6",
+                    dtstamp=dtstamp,
+                    start=gather_start,
+                    end=kickoff,
+                    summary=f"Verzamelen: {entry['thuisteam']} - {entry['uitteam']}",
+                    location=location,
+                )
+
+        lines += vevent(
+            uid=f"{uid}@vvz49-jo14-6",
+            dtstamp=dtstamp,
+            start=kickoff,
+            end=kickoff + timedelta(minutes=90),
+            summary=summary,
+            location=location,
+            description=description,
+            cancelled=cancelled,
+        )
 
     lines.append("END:VCALENDAR")
     return "\r\n".join(lines) + "\r\n"
@@ -142,13 +175,13 @@ def build_ics(state: dict, now: datetime) -> str:
 def main() -> int:
     now = datetime.now(TZ_AMS)
     try:
-        poulecode = find_poulecode()
-        matches = fetch_schedule(poulecode)
+        teamcode = find_teamcode()
+        matches = fetch_schedule(teamcode)
     except (urllib.error.URLError, RuntimeError) as exc:
         print(f"Kon programma niet ophalen: {exc}", file=sys.stderr)
         return 0  # laat matches.json/matches.ics ongewijzigd staan
 
-    print(f"Poulecode {poulecode}: {len(matches)} wedstrijd(en) opgehaald.")
+    print(f"Teamcode {teamcode}: {len(matches)} wedstrijd(en) opgehaald.")
 
     state = load_state()
     state = merge(state, matches, now.isoformat())
@@ -156,7 +189,7 @@ def main() -> int:
 
     ics = build_ics(state, now)
     ICS_PATH.write_text(ics)
-    print(f"matches.ics geschreven met {ics.count('BEGIN:VEVENT')} wedstrijd(en) totaal.")
+    print(f"matches.ics geschreven met {ics.count('BEGIN:VEVENT')} agenda-item(en) totaal.")
     return 0
 
 

@@ -8,6 +8,12 @@ Geen betaalde Voetbal.nl-app nodig: dit gebruikt de publieke widget-API
 die SO Soest's eigen website (so-soest.nl) ook gebruikt om standen en
 programma te tonen. Zie `scrape.py` voor details.
 
+Per wedstrijd staan er (zodra de KNVB de verzameltijd publiceert, meestal
+1-2 weken van tevoren) twee agenda-items:
+
+- **Verzamelen: ...** — van verzameltijd tot aanvangstijd
+- **Thuisteam - Uitteam** — de wedstrijd zelf, incl. scheidsrechter en veld
+
 ## Hoe toevoegen aan Google Calendar
 
 1. Ga naar https://calendar.google.com/calendar/r/settings/addbyurl
