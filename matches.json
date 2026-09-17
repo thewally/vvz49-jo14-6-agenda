@@ -1,0 +1,35 @@
+{
+  "20832352": {
+    "accommodatie": "Sportpark Voordorp",
+    "first_seen": "2026-09-17T13:41:34.586380+02:00",
+    "last_seen": "2026-09-17T13:41:34.586380+02:00",
+    "plaats": "UTRECHT",
+    "status": "Te spelen",
+    "thuisteam": "Hercules O14-5",
+    "uitteam": "ST SO Soest/VVZ'49 O14-6",
+    "wedstrijddatum": "2026-10-03T09:55:00+0200",
+    "wedstrijdnummer": "13784"
+  },
+  "20850331": {
+    "accommodatie": "Sportpark Dollardstraat",
+    "first_seen": "2026-09-17T13:41:34.586380+02:00",
+    "last_seen": "2026-09-17T13:41:34.586380+02:00",
+    "plaats": "AMERSFOORT",
+    "status": "Te spelen",
+    "thuisteam": "KVVA O14-1",
+    "uitteam": "ST SO Soest/VVZ'49 O14-6",
+    "wedstrijddatum": "2026-09-26T09:00:00+0200",
+    "wedstrijdnummer": "31763"
+  },
+  "20859765": {
+    "accommodatie": "Sportpark Zonnegloren",
+    "first_seen": "2026-09-17T13:41:34.586380+02:00",
+    "last_seen": "2026-09-17T13:41:34.586380+02:00",
+    "plaats": "SOEST",
+    "status": "Te spelen",
+    "thuisteam": "ST SO Soest/VVZ'49 O14-6",
+    "uitteam": "Kampong O14-5",
+    "wedstrijddatum": "2026-09-19T10:15:00+0200",
+    "wedstrijdnummer": "41197"
+  }
+}
