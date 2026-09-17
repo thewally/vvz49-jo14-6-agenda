@@ -5,53 +5,59 @@ CALSCALE:GREGORIAN
 X-WR-CALNAME:ST SO Soest/VVZ'49 O14-6
 BEGIN:VEVENT
 UID:20859765-verzamelen@vvz49-jo14-6
-DTSTAMP:20260917T142543Z
+DTSTAMP:20260917T174114Z
 DTSTART:20260919T074500Z
 DTEND:20260919T081500Z
 SUMMARY:Verzamelen: ST SO Soest/VVZ'49 O14-6 - Kampong O14-5
 LOCATION:Kleedkamer\, Sportpark Zonnegloren\, veld 3\, SOEST
+URL:https://www.google.com/maps/search/?api=1&query=Eemweg%201%2C%203764DG%20SOEST
 END:VEVENT
 BEGIN:VEVENT
 UID:20859765@vvz49-jo14-6
-DTSTAMP:20260917T142543Z
+DTSTAMP:20260917T174114Z
 DTSTART:20260919T081500Z
 DTEND:20260919T094500Z
 SUMMARY:ST SO Soest/VVZ'49 O14-6 - Kampong O14-5
 LOCATION:Sportpark Zonnegloren\, veld 3\, SOEST
-DESCRIPTION:Status: Te spelen\nScheidsrechter: RJ (Robert Jan) Boers\nWedstrijdnummer: 41197
+DESCRIPTION:Status: Te spelen\nScheidsrechter: RJ (Robert Jan) Boers\nWedstrijdnummer: 41197\nRoute: https://www.google.com/maps/search/?api=1&query=Eemweg%201%2C%203764DG%20SOEST
+URL:https://www.google.com/maps/search/?api=1&query=Eemweg%201%2C%203764DG%20SOEST
 END:VEVENT
 BEGIN:VEVENT
 UID:20850331-verzamelen@vvz49-jo14-6
-DTSTAMP:20260917T142543Z
+DTSTAMP:20260917T174114Z
 DTSTART:20260926T060000Z
 DTEND:20260926T070000Z
 SUMMARY:Verzamelen: KVVA O14-1 - ST SO Soest/VVZ'49 O14-6
-LOCATION:Parkeerplaats VVZ'49\, Sportpark Zonnegloren\, Soest
+LOCATION:Parkeerplaats VVZ'49\, Sportpark Zonnegloren\, Eemweg 1\, 3764DG SOEST
+URL:https://www.google.com/maps/search/?api=1&query=Eemweg%201%2C%203764DG%20SOEST
 END:VEVENT
 BEGIN:VEVENT
 UID:20850331@vvz49-jo14-6
-DTSTAMP:20260917T142543Z
+DTSTAMP:20260917T174114Z
 DTSTART:20260926T070000Z
 DTEND:20260926T083000Z
 SUMMARY:KVVA O14-1 - ST SO Soest/VVZ'49 O14-6
 LOCATION:Sportpark Dollardstraat\, veld 1\, AMERSFOORT
-DESCRIPTION:Status: Te spelen\nWedstrijdnummer: 31763
+DESCRIPTION:Status: Te spelen\nWedstrijdnummer: 31763\nRoute: https://www.google.com/maps/search/?api=1&query=Dollardstraat%20115%2C%203812EV%20AMERSFOORT
+URL:https://www.google.com/maps/search/?api=1&query=Dollardstraat%20115%2C%203812EV%20AMERSFOORT
 END:VEVENT
 BEGIN:VEVENT
 UID:20832352-verzamelen@vvz49-jo14-6
-DTSTAMP:20260917T142543Z
+DTSTAMP:20260917T174114Z
 DTSTART:20261003T064500Z
 DTEND:20261003T075500Z
 SUMMARY:Verzamelen: Hercules O14-5 - ST SO Soest/VVZ'49 O14-6
-LOCATION:Parkeerplaats VVZ'49\, Sportpark Zonnegloren\, Soest
+LOCATION:Parkeerplaats VVZ'49\, Sportpark Zonnegloren\, Eemweg 1\, 3764DG SOEST
+URL:https://www.google.com/maps/search/?api=1&query=Eemweg%201%2C%203764DG%20SOEST
 END:VEVENT
 BEGIN:VEVENT
 UID:20832352@vvz49-jo14-6
-DTSTAMP:20260917T142543Z
+DTSTAMP:20260917T174114Z
 DTSTART:20261003T075500Z
 DTEND:20261003T092500Z
 SUMMARY:Hercules O14-5 - ST SO Soest/VVZ'49 O14-6
 LOCATION:Sportpark Voordorp\, veld 5-Hercules\, UTRECHT
-DESCRIPTION:Status: Te spelen\nWedstrijdnummer: 13784
+DESCRIPTION:Status: Te spelen\nWedstrijdnummer: 13784\nRoute: https://www.google.com/maps/search/?api=1&query=Voorveldselaan%204%2C%203573PV%20UTRECHT
+URL:https://www.google.com/maps/search/?api=1&query=Voorveldselaan%204%2C%203573PV%20UTRECHT
 END:VEVENT
 END:VCALENDAR
