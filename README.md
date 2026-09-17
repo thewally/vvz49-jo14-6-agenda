@@ -20,6 +20,38 @@ De agenda wordt elke ochtend en avond automatisch bijgewerkt. Google
 Calendar ververst de feed vervolgens op zijn eigen tempo (meestal binnen
 12-24 uur).
 
+## Hoe te gebruiken in Outlook
+
+**Outlook.com (web)**
+
+1. Ga naar https://outlook.live.com/calendar/ en klik op **Agenda toevoegen**
+2. Kies **Abonneren vanaf internet**
+3. Plak de URL: `https://thewally.github.io/vvz49-jo14-6-agenda/matches.ics`
+4. Geef de agenda een naam (bv. "JO14-6") en klik op **Importeren**
+
+**Outlook desktop-app (Windows)**
+
+1. Open het tabblad **Agenda**
+2. Klik op **Agenda openen** → **Van internet…**
+3. Plak de URL en klik op **OK**
+
+Outlook ververst geabonneerde agenda's doorgaans eens per dag.
+
+## Hoe te gebruiken in Apple Calendar
+
+**Mac**
+
+1. Open de app **Agenda**
+2. Kies in het menu **Archief** → **Nieuw agenda-abonnement…**
+3. Plak de URL: `https://thewally.github.io/vvz49-jo14-6-agenda/matches.ics`
+4. Klik op **Abonneren**, stel eventueel het ververs-interval in (bv. elk uur) en klik op **OK**
+
+**iPhone/iPad**
+
+1. Ga naar **Instellingen** → **Agenda** → **Accounts** → **Account toevoegen** → **Overige**
+2. Kies **Voeg agenda-abonnement toe**
+3. Vul bij **Server** de URL in en tik op **Volgende**, dan op **Bewaar**
+
 ## Achtergrond
 
 Geen betaalde Voetbal.nl-app nodig: dit gebruikt de publieke widget-API
