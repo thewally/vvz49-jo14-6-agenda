@@ -5,10 +5,10 @@ Agenda-feed voor ST SO Soest/VVZ'49 O14-6 (JO14-6).
 Dit team is een combinatieteam (samenwerkingsteam) tussen SO Soest en
 VVZ'49, administratief ondergebracht bij SO Soest. SO Soest's eigen
 website (so-soest.nl) gebruikt een publieke "Sportlink Club" widget-API
-(data.sportlink.com) om standen/programma te tonen. Die API is vrij
-toegankelijk met de client_id die gewoon in hun publieke JS-bestand
-staat (assets/js/global.js) -- geen account of betaalde Voetbal.nl-app
-nodig.
+(data.sportlink.com) om standen/programma te tonen -- geen account of
+betaalde Voetbal.nl-app nodig. De bijbehorende client_id staat in de
+GitHub Actions repository secret SPORTLINK_CLIENT_ID (lokaal: zet 'm
+in de omgevingsvariabele met dezelfde naam) in plaats van in de code.
 
 We zoeken elke run opnieuw de teamcode op (stabieler dan poulecode, die
 halverwege het seizoen wisselt als de KNVB een nieuwe competitiefase
@@ -20,6 +20,7 @@ wedstrijden niet verdwijnen zodra een fase/poule wisselt. Daarna wordt
 matches.ics gegenereerd voor abonnement in Google Calendar.
 """
 import json
+import os
 import sys
 import urllib.error
 import urllib.parse
@@ -29,7 +30,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 API_BASE = "https://data.sportlink.com"
-CLIENT_ID = "***REMOVED***"  # publiek, uit so-soest.nl/assets/js/global.js
+CLIENT_ID = os.environ.get("SPORTLINK_CLIENT_ID")
 TEAM_NAME = "ST SO Soest/VVZ'49 O14-6"
 THUIS_VENUE = "Sportpark Zonnegloren, Soest"
 UIT_VERZAMELPLEK = f"Parkeerplaats VVZ'49, {THUIS_VENUE}"
@@ -182,6 +183,10 @@ def build_ics(state: dict, now: datetime) -> str:
 
 
 def main() -> int:
+    if not CLIENT_ID:
+        print("SPORTLINK_CLIENT_ID ontbreekt (zet 'm als env var of repository secret).", file=sys.stderr)
+        return 1
+
     now = datetime.now(TZ_AMS)
     try:
         teamcode = find_teamcode()

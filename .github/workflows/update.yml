@@ -21,6 +21,8 @@ jobs:
           python-version: "3.12"
 
       - run: python3 scrape.py
+        env:
+          SPORTLINK_CLIENT_ID: ${{ secrets.SPORTLINK_CLIENT_ID }}
 
       - name: Commit als er wijzigingen zijn
         run: |
