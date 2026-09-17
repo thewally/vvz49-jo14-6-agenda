@@ -85,6 +85,7 @@ def merge(state: dict, matches: list[dict], now_iso: str) -> dict:
                 "status": m.get("status") or "",
                 "wedstrijdnummer": m.get("wedstrijdnummer") or "",
                 "verzameltijd": m.get("verzameltijd") or "",
+                "vertrektijd": m.get("vertrektijd") or "",
                 "scheidsrechter": m.get("scheidsrechter") or "",
             }
         )
@@ -145,12 +146,14 @@ def build_ics(state: dict, now: datetime) -> str:
         ]
         description = "\n".join(p for p in desc_parts if p)
 
-        # Verzamelen: van verzameltijd tot aanvangstijd (alleen als bekend en voor kickoff ligt).
-        # Bij thuiswedstrijden in de kleedkamer op de eigen accommodatie, bij
-        # uitwedstrijden op de parkeerplaats van VVZ'49 (vertrekpunt voor carpoolen).
+        # Verzamelen: bij thuiswedstrijden is dat "verzameltijd" (verzamelen in de
+        # kleedkamer op de eigen accommodatie); bij uitwedstrijden publiceert de
+        # KNVB in plaats daarvan een "vertrektijd" (vertrek vanaf de parkeerplaats
+        # van VVZ'49, het vertrekpunt om samen naartoe te rijden).
         is_thuis = entry["thuisteam"] == TEAM_NAME
-        if entry["verzameltijd"] and not cancelled:
-            vh, vm = (int(x) for x in entry["verzameltijd"].split(":"))
+        gather_time = entry["verzameltijd"] if is_thuis else entry["vertrektijd"]
+        if gather_time and not cancelled:
+            vh, vm = (int(x) for x in gather_time.split(":"))
             gather_start = kickoff.replace(hour=vh, minute=vm, second=0, microsecond=0)
             if gather_start < kickoff:
                 gather_location = f"Kleedkamer, {location}" if is_thuis else UIT_VERZAMELPLEK
