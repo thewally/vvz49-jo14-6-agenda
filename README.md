@@ -11,6 +11,15 @@ Google Calendar (of Apple/Outlook).
 - **Thuisteam - Uitteam** — de wedstrijd zelf, incl. scheidsrechter en veld
 - **Overige activiteiten** — trainingen, toernooien, teamuitjes
 
+Voor VVZ'49's eigen accommodatie (Sportvereniging Vrienden van Zonnegloren)
+staat in het locatieveld altijd het volledige adres
+(`Sportvereniging Vrienden van Zonnegloren Eemweg 2D, 3764 DG Soest, Nederland`)
+-- dat is wat nodig is om in Google Calendar (en waarschijnlijk andere
+clients) het kaartje/foto van de locatie te laten verschijnen. Een
+sub-locatie zoals "Hoofdveld", "Trainingsveld", "Kleedkamer" of
+"Parkeerplaats" staat daarom niet in het locatieveld, maar tussen haakjes
+in de titel.
+
 ## Hoe te gebruiken in Google Calendar
 
 1. Ga naar https://calendar.google.com/calendar/r/settings/addbyurl
@@ -72,7 +81,7 @@ wordt dan meteen opnieuw opgebouwd.
     "herhalen_tot": "2026-12-15",
     "behalve": ["2026-10-20"],
     "locatie": "Sportvereniging Vrienden van Zonnegloren",
-    "adres": "Eemweg 1, 3764DG SOEST",
+    "sublocatie": "Hoofdveld",
     "omschrijving": "Neem je bidon mee."
   }
 ]
@@ -88,7 +97,8 @@ wordt dan meteen opnieuw opgebouwd.
 | `elke_weken` | nee | Herhaal om de N weken (1 = wekelijks, 2 = om de week). Zonder `herhalen_tot` loopt de reeks door; de feed toont steeds een jaar vooruit. |
 | `herhalen_tot` | nee | Laatste datum van de reeks (zonder `elke_weken`: wekelijks). Oude naam `wekelijks_tot` werkt ook nog. |
 | `behalve` | nee | Lijst met datums die overgeslagen worden (vakanties). |
-| `locatie` / `adres` | nee | Adres wordt een Google Maps-routelink. |
+| `locatie` / `adres` | nee | Adres wordt een Google Maps-routelink. Vul bij `locatie` exact `Sportvereniging Vrienden van Zonnegloren` in voor de eigen accommodatie -- `adres` is dan niet nodig, het volledige adres wordt automatisch ingevuld zodat Google Calendar het kaartje/foto herkent. |
+| `sublocatie` | nee | Bv. "Hoofdveld", "Trainingsveld", "Kleedkamer", "Parkeerplaats". Komt tussen haakjes achter de titel te staan (niet in het locatieveld, dat zou de kaart-herkenning verstoren). |
 | `url` | nee | Eigen link in plaats van de Maps-link. |
 | `omschrijving` | nee | Extra tekst. |
 | `afgelast` | nee | `true` → "AFGELAST:" in de titel. |
