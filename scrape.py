@@ -183,7 +183,7 @@ def build_ics(state: dict, now: datetime) -> str:
 
         cancelled = bool(entry["status"]) and "afgelast" in entry["status"].lower()
         accommodatie_display = display_accommodatie(entry["accommodatie"])
-        location = ", ".join(p for p in [accommodatie_display, entry["veld"], entry["plaats"]] if p)
+        location = accommodatie_display
         match_maps_url = maps_url(accommodatie_display, entry["straat"], entry["adresplaats"])
         summary = f"{entry['thuisteam']} - {entry['uitteam']}"
         if cancelled:
@@ -191,6 +191,8 @@ def build_ics(state: dict, now: datetime) -> str:
 
         desc_parts = [
             f"Status: {entry['status']}" if entry["status"] else "",
+            f"Veld: {entry['veld']}" if entry["veld"] else "",
+            f"Plaats: {entry['plaats']}" if entry["plaats"] else "",
             f"Scheidsrechter: {entry['scheidsrechter']}" if entry["scheidsrechter"] else "",
             f"Wedstrijdnummer: {entry['wedstrijdnummer']}" if entry["wedstrijdnummer"] else "",
             f"Route: {match_maps_url}" if match_maps_url else "",
