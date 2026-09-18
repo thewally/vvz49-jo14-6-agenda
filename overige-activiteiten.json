@@ -1,5 +1,16 @@
 [
   {
+  "id": "keeperstraining-dinsdag",
+  "titel": "Keeperstraining JO14-6",
+  "datum": "2026-09-22",
+  "begintijd": "17:30",
+  "eindtijd": "18:00",
+  "wekelijks_tot": "2026-12-15",
+  "locatie": "Sportvereniging Vrienden van Zonnegloren",
+  "adres": "Eemweg 1, 3764DG SOEST",
+  "omschrijving": "Wekelijkse keeperstraining op dinsdag"
+  },
+  {
     "id": "training-dinsdag",
     "titel": "Training JO14-6",
     "datum": "2026-09-22",
