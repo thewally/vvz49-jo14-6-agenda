@@ -21,6 +21,14 @@ Google Maps-link krijgt, in plaats van te gokken op basis van de
 sportparknaam. Alles wordt bijgehouden in matches.json zodat wedstrijden
 niet verdwijnen zodra een fase/poule wisselt.
 
+Voor VVZ'49's eigen accommodatie wordt in het LOCATION-veld altijd het
+volledige, exacte adres gebruikt (THUIS_ADRES_VOLLEDIG) -- dat is wat
+Google Calendar (en vermoedelijk andere clients) nodig heeft om er een
+kaartje/foto bij te tonen. Sub-locatie-aanduidingen zoals "Hoofdveld",
+"Trainingsveld", "Kleedkamer" of "Parkeerplaats" horen dus niet in het
+LOCATION-veld (dat zou de match met de kaart-herkenning verstoren), maar
+worden in de titel getoond.
+
 Daarnaast worden handmatig bijgehouden activiteiten (trainingen,
 toernooien, teamuitjes, ...) uit overige-activiteiten.json toegevoegd.
 Zie README.md voor het formaat. Daarna wordt matches.ics gegenereerd voor
@@ -48,19 +56,19 @@ AGENDA_LABEL = "JO14-6"
 # VVZ'49's eigen accommodatie (Sportpark Zonnegloren) -- vast vertrekpunt
 # voor het carpoolen bij uitwedstrijden. De KNVB noemt de accommodatie zelf
 # "Sportpark Zonnegloren", maar Google Maps/Calendar herkent de plek -- met
-# foto en kaartje -- pas onder de officiele clubnaam.
+# foto en kaartje -- pas onder de officiele clubnaam en het exacte adres.
 THUIS_ACCOMMODATIE_KNVB = "Sportpark Zonnegloren"
 THUIS_CLUBNAAM = "Sportvereniging Vrienden van Zonnegloren"
-THUIS_STRAAT = "Eemweg 1"
-THUIS_PLAATS = "3764DG SOEST"
-UIT_VERZAMELPLEK = f"{THUIS_CLUBNAAM} (parkeerplaats), {THUIS_STRAAT}, {THUIS_PLAATS}"
+THUIS_STRAAT = "Eemweg 2D"
+THUIS_PLAATS = "3764 DG Soest"
+THUIS_ADRES_VOLLEDIG = f"{THUIS_CLUBNAAM} {THUIS_STRAAT}, {THUIS_PLAATS}, Nederland"
 
 
 def display_accommodatie(naam: str) -> str:
     """Vervangt de KNVB-naam van VVZ'49's eigen accommodatie door de naam
-    zoals Google Maps 'm herkent, zodat Google Calendar er een kaartje met
-    foto bij toont. Voor andere sportparken (uitwedstrijden) blijft de
-    KNVB-naam staan -- daar is geen betrouwbare 1-op-1 vertaling van bekend."""
+    zoals Google Maps 'm herkent. Voor andere sportparken (uitwedstrijden)
+    blijft de KNVB-naam staan -- daar is geen betrouwbare 1-op-1 vertaling
+    van bekend."""
     return THUIS_CLUBNAAM if naam == THUIS_ACCOMMODATIE_KNVB else naam
 
 TZ_AMS = ZoneInfo("Europe/Amsterdam")
@@ -180,6 +188,26 @@ def load_activiteiten() -> list[dict]:
     return data
 
 
+def activiteit_locatie(act: dict) -> tuple[str, str]:
+    """Bepaalt LOCATION en route-URL voor een overige activiteit. Voor
+    VVZ'49's eigen accommodatie wordt altijd het exacte, volledige adres
+    gebruikt (voor de kaart/foto-herkenning); de sub-locatie (zie
+    activiteit_titel) hoort daar niet bij."""
+    locatie_naam = act.get("locatie") or ""
+    adres = act.get("adres") or ""
+    if locatie_naam == THUIS_CLUBNAAM:
+        return THUIS_ADRES_VOLLEDIG, act.get("url") or THUIS_MAPS_URL
+    locatie = ", ".join(p for p in [locatie_naam, adres] if p)
+    url = act.get("url") or maps_url(locatie_naam, adres, "")
+    return locatie, url
+
+
+def activiteit_titel(act: dict, afgelast: bool) -> str:
+    sublocatie = act.get("sublocatie") or ""
+    titel = f"{act['titel']} ({sublocatie})" if sublocatie else act["titel"]
+    return f"AFGELAST: {titel}" if afgelast else titel
+
+
 def activiteit_events(act: dict, dtstamp: str, cutoff: date, horizon: date) -> list[str]:
     act_id = act["id"]
     try:
@@ -209,10 +237,8 @@ def activiteit_events(act: dict, dtstamp: str, cutoff: date, horizon: date) -> l
         raise fout(f"activiteit '{act_id}': 'herhalen_tot' ligt voor 'datum'")
 
     afgelast = bool(act.get("afgelast"))
-    summary = f"AFGELAST: {act['titel']}" if afgelast else act["titel"]
-    adres = act.get("adres") or ""
-    locatie = ", ".join(p for p in [act.get("locatie") or "", adres] if p)
-    url = act.get("url") or maps_url(act.get("locatie") or "", adres, "")
+    summary = activiteit_titel(act, afgelast)
+    locatie, url = activiteit_locatie(act)
     description = "\n".join(p for p in [act.get("omschrijving") or "", f"Route: {url}" if url else ""] if p)
 
     lines: list[str] = []
@@ -281,7 +307,7 @@ def vevent(uid: str, dtstamp: str, start: date, end: date, summary: str, locatio
     return lines
 
 
-UIT_MAPS_URL = maps_url(THUIS_CLUBNAAM, THUIS_STRAAT, THUIS_PLAATS)
+THUIS_MAPS_URL = maps_url(THUIS_CLUBNAAM, THUIS_STRAAT, THUIS_PLAATS)
 
 
 def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
@@ -302,8 +328,13 @@ def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
 
         cancelled = bool(entry["status"]) and "afgelast" in entry["status"].lower()
         accommodatie_display = display_accommodatie(entry["accommodatie"])
-        location = accommodatie_display
-        match_maps_url = maps_url(accommodatie_display, entry["straat"], entry["adresplaats"])
+        is_thuis_accommodatie = accommodatie_display == THUIS_CLUBNAAM
+        if is_thuis_accommodatie:
+            location = THUIS_ADRES_VOLLEDIG
+            match_maps_url = THUIS_MAPS_URL
+        else:
+            location = accommodatie_display
+            match_maps_url = maps_url(accommodatie_display, entry["straat"], entry["adresplaats"])
 
         # Titel toont alleen richting + tegenstander, bv. "[UIT] Kampong O14-5
         # (JO14-6)" -- de eigen teamnaam staat al in de agenda-titel zelf.
@@ -327,22 +358,24 @@ def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
         # Verzamelen: bij thuiswedstrijden is dat "verzameltijd" (verzamelen in de
         # kleedkamer op de eigen accommodatie); bij uitwedstrijden publiceert de
         # KNVB in plaats daarvan een "vertrektijd" (vertrek vanaf de parkeerplaats
-        # van VVZ'49, het vertrekpunt om samen naartoe te rijden).
+        # van VVZ'49, het vertrekpunt om samen naartoe te rijden). Beide vinden
+        # dus plaats op de eigen accommodatie -- LOCATION is in beide gevallen
+        # het volledige thuisadres, het verschil (kleedkamer/parkeerplaats)
+        # staat in de titel.
         gather_time = entry["verzameltijd"] if is_thuis else entry["vertrektijd"]
         if gather_time and not cancelled:
             vh, vm = (int(x) for x in gather_time.split(":"))
             gather_start = kickoff.replace(hour=vh, minute=vm, second=0, microsecond=0)
             if gather_start < kickoff:
-                gather_location = f"Kleedkamer, {location}" if is_thuis else UIT_VERZAMELPLEK
-                gather_url = match_maps_url if is_thuis else UIT_MAPS_URL
+                sublocatie = "kleedkamer" if is_thuis else "parkeerplaats"
                 lines += vevent(
                     uid=f"{uid}-verzamelen@{UID_NAMESPACE}",
                     dtstamp=dtstamp,
                     start=gather_start,
                     end=kickoff,
-                    summary=f"Verzamelen: [{richting}] {tegenstander} ({AGENDA_LABEL})",
-                    location=gather_location,
-                    url=gather_url,
+                    summary=f"Verzamelen ({sublocatie}): [{richting}] {tegenstander} ({AGENDA_LABEL})",
+                    location=THUIS_ADRES_VOLLEDIG,
+                    url=THUIS_MAPS_URL,
                 )
 
         lines += vevent(
