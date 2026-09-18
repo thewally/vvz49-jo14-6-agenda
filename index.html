@@ -94,6 +94,7 @@
     font-size: .85rem;
     margin: .6rem 0 1.75rem;
   }
+  details .hint { margin: .6rem 0 1rem; }
   details {
     background: var(--card);
     border: 1px solid var(--border);
@@ -160,31 +161,34 @@
   <details>
     <summary>Outlook</summary>
     <p><strong>Outlook.com (web)</strong></p>
-    <ol>
-      <li>Ga naar <a href="https://outlook.live.com/calendar/" target="_blank" rel="noopener">outlook.live.com/calendar</a> en klik op <strong>Agenda toevoegen</strong></li>
-      <li>Kies <strong>Abonneren vanaf internet</strong></li>
-      <li>Plak de URL hierboven</li>
-      <li>Geef de agenda een naam (bv. "JO14-6") en klik op <strong>Importeren</strong></li>
-    </ol>
+    <button class="button" id="outlook-btn" type="button">Openen in Outlook.com</button>
+    <p class="hint" id="outlook-hint">
+      De link hierboven wordt gekopieerd en outlook.live.com opent in een nieuw tabblad.
+      Klik daar op <strong>Agenda toevoegen</strong> → <strong>Abonneren vanaf internet</strong>,
+      plak de link en klik op <strong>Importeren</strong>.
+    </p>
     <p><strong>Outlook desktop-app (Windows)</strong></p>
     <ol>
       <li>Open het tabblad <strong>Agenda</strong></li>
       <li>Klik op <strong>Agenda openen</strong> → <strong>Van internet…</strong></li>
-      <li>Plak de URL en klik op <strong>OK</strong></li>
+      <li>Plak de URL (uit het grijze vak bovenaan) en klik op <strong>OK</strong></li>
     </ol>
     <p>Outlook ververst geabonneerde agenda's doorgaans eens per dag.</p>
   </details>
 
   <details>
     <summary>Apple Calendar</summary>
-    <p><strong>Mac</strong></p>
+    <p><strong>Mac, iPhone en iPad</strong></p>
+    <a class="button" id="apple-link" href="webcal://thewally.github.io/vvz49-jo14-6-agenda/matches.ics">Abonneren in Apple Calendar</a>
+    <p class="hint">Dit opent direct de Agenda-app met de vraag om te abonneren — werkt alleen op een Mac, iPhone of iPad (en alleen als de link vanaf dat apparaat wordt geopend).</p>
+    <p><strong>Werkt de knop niet? Handmatig op Mac</strong></p>
     <ol>
       <li>Open de app <strong>Agenda</strong></li>
       <li>Kies in het menu <strong>Archief</strong> → <strong>Nieuw agenda-abonnement…</strong></li>
       <li>Plak de URL hierboven</li>
       <li>Klik op <strong>Abonneren</strong>, stel eventueel het ververs-interval in (bv. elk uur) en klik op <strong>OK</strong></li>
     </ol>
-    <p><strong>iPhone/iPad</strong></p>
+    <p><strong>Handmatig op iPhone/iPad</strong></p>
     <ol>
       <li>Ga naar <strong>Instellingen</strong> → <strong>Agenda</strong> → <strong>Accounts</strong> → <strong>Account toevoegen</strong> → <strong>Overige</strong></li>
       <li>Kies <strong>Voeg agenda-abonnement toe</strong></li>
@@ -198,33 +202,46 @@
 </main>
 <script>
 (function () {
-  var btn = document.getElementById('gcal-btn');
   var urlEl = document.getElementById('ics-url');
-  if (!btn || !urlEl) return;
-  var defaultText = btn.textContent;
+  if (!urlEl) return;
 
-  function openSettings() {
-    window.open('https://calendar.google.com/calendar/r/settings/addbyurl', '_blank', 'noopener');
-  }
-
-  function markCopied() {
-    btn.textContent = '✓ Link gekopieerd!';
-    setTimeout(function () { btn.textContent = defaultText; }, 4000);
-  }
-
-  btn.addEventListener('click', function () {
+  function copyThenOpen(btn, destination) {
     var url = urlEl.textContent.trim();
+    var defaultText = btn.textContent;
+
+    function open() {
+      window.open(destination, '_blank', 'noopener');
+    }
+    function markCopied() {
+      btn.textContent = '✓ Link gekopieerd!';
+      setTimeout(function () { btn.textContent = defaultText; }, 4000);
+    }
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(function () {
         markCopied();
-        openSettings();
+        open();
       }, function () {
-        openSettings();
+        open();
       });
     } else {
-      openSettings();
+      open();
     }
-  });
+  }
+
+  var gcalBtn = document.getElementById('gcal-btn');
+  if (gcalBtn) {
+    gcalBtn.addEventListener('click', function () {
+      copyThenOpen(gcalBtn, 'https://calendar.google.com/calendar/r/settings/addbyurl');
+    });
+  }
+
+  var outlookBtn = document.getElementById('outlook-btn');
+  if (outlookBtn) {
+    outlookBtn.addEventListener('click', function () {
+      copyThenOpen(outlookBtn, 'https://outlook.live.com/calendar/');
+    });
+  }
 })();
 </script>
 </body>
