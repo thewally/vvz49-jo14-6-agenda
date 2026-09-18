@@ -42,6 +42,9 @@ CLIENT_ID = os.environ.get("SPORTLINK_CLIENT_ID")
 TEAM_NAME = "ST SO Soest/VVZ'49 O14-6"
 UID_NAMESPACE = "vvz49-jo14-6"
 
+# Label achter de wedstrijdtitel, bv. "[UIT] Kampong O14-5 (JO14-6)".
+AGENDA_LABEL = "JO14-6"
+
 # VVZ'49's eigen accommodatie (Sportpark Zonnegloren) -- vast vertrekpunt
 # voor het carpoolen bij uitwedstrijden. De KNVB noemt de accommodatie zelf
 # "Sportpark Zonnegloren", maar Google Maps/Calendar herkent de plek -- met
@@ -301,7 +304,13 @@ def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
         accommodatie_display = display_accommodatie(entry["accommodatie"])
         location = accommodatie_display
         match_maps_url = maps_url(accommodatie_display, entry["straat"], entry["adresplaats"])
-        summary = f"{entry['thuisteam']} - {entry['uitteam']}"
+
+        # Titel toont alleen richting + tegenstander, bv. "[UIT] Kampong O14-5
+        # (JO14-6)" -- de eigen teamnaam staat al in de agenda-titel zelf.
+        is_thuis = entry["thuisteam"] == TEAM_NAME
+        richting = "THUIS" if is_thuis else "UIT"
+        tegenstander = entry["uitteam"] if is_thuis else entry["thuisteam"]
+        summary = f"[{richting}] {tegenstander} ({AGENDA_LABEL})"
         if cancelled:
             summary = f"AFGELAST: {summary}"
 
@@ -319,7 +328,6 @@ def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
         # kleedkamer op de eigen accommodatie); bij uitwedstrijden publiceert de
         # KNVB in plaats daarvan een "vertrektijd" (vertrek vanaf de parkeerplaats
         # van VVZ'49, het vertrekpunt om samen naartoe te rijden).
-        is_thuis = entry["thuisteam"] == TEAM_NAME
         gather_time = entry["verzameltijd"] if is_thuis else entry["vertrektijd"]
         if gather_time and not cancelled:
             vh, vm = (int(x) for x in gather_time.split(":"))
@@ -332,7 +340,7 @@ def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
                     dtstamp=dtstamp,
                     start=gather_start,
                     end=kickoff,
-                    summary=f"Verzamelen: {entry['thuisteam']} - {entry['uitteam']}",
+                    summary=f"Verzamelen: [{richting}] {tegenstander} ({AGENDA_LABEL})",
                     location=gather_location,
                     url=gather_url,
                 )
