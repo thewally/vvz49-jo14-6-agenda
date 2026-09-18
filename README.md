@@ -9,6 +9,7 @@ Google Calendar (of Apple/Outlook).
 - **Verzamelen: …** — van verzameltijd tot aanvangstijd
 - **Speeltijden**
 - **Thuisteam - Uitteam** — de wedstrijd zelf, incl. scheidsrechter en veld
+- **Overige activiteiten** — trainingen, toernooien, teamuitjes
 
 ## Hoe te gebruiken in Google Calendar
 
@@ -51,3 +52,47 @@ Outlook ververst geabonneerde agenda's doorgaans eens per dag.
 1. Ga naar **Instellingen** → **Agenda** → **Accounts** → **Account toevoegen** → **Overige**
 2. Kies **Voeg agenda-abonnement toe**
 3. Vul bij **Server** de URL in en tik op **Volgende**, dan op **Bewaar**
+
+## Overige activiteiten toevoegen
+
+Naast de wedstrijden uit Sportlink kun je zelf activiteiten (trainingen,
+toernooien, teamuitjes, borrels) in `overige-activiteiten.json` zetten.
+Pas het bestand aan (bv. direct op GitHub via het potlood-icoon); de agenda
+wordt dan meteen opnieuw opgebouwd.
+
+```json
+[
+  {
+    "id": "training-woensdag",
+    "titel": "Training",
+    "datum": "2026-09-22",
+    "begintijd": "18:30",
+    "eindtijd": "19:15",
+    "elke_weken": 2,
+    "herhalen_tot": "2026-12-15",
+    "behalve": ["2026-10-20"],
+    "locatie": "Sportvereniging Vrienden van Zonnegloren",
+    "adres": "Eemweg 1, 3764DG SOEST",
+    "omschrijving": "Neem je bidon mee."
+  }
+]
+```
+
+| Veld | Verplicht | Uitleg |
+|---|---|---|
+| `id` | ja | Unieke, vaste naam (letters, cijfers, `-`, `_`). Niet meer wijzigen na publiceren. |
+| `titel` | ja | Titel in de agenda. |
+| `datum` | ja | `JJJJ-MM-DD`. Bij herhaling: de eerste keer. |
+| `begintijd` / `eindtijd` | nee | `UU:MM`. Zonder begintijd wordt het een hele-dag-item; zonder eindtijd duurt het 1 uur. |
+| `einddatum` | nee | Voor meerdaagse activiteiten (bv. toernooiweekend). |
+| `elke_weken` | nee | Herhaal om de N weken (1 = wekelijks, 2 = om de week). Zonder `herhalen_tot` loopt de reeks door; de feed toont steeds een jaar vooruit. |
+| `herhalen_tot` | nee | Laatste datum van de reeks (zonder `elke_weken`: wekelijks). Oude naam `wekelijks_tot` werkt ook nog. |
+| `behalve` | nee | Lijst met datums die overgeslagen worden (vakanties). |
+| `locatie` / `adres` | nee | Adres wordt een Google Maps-routelink. |
+| `url` | nee | Eigen link in plaats van de Maps-link. |
+| `omschrijving` | nee | Extra tekst. |
+| `afgelast` | nee | `true` → "AFGELAST:" in de titel. |
+
+Een item verwijderen uit het bestand haalt het ook uit de agenda. Bij een
+tikfout in het bestand faalt de GitHub Action (je krijgt een mail) en blijft
+de huidige agenda staan.

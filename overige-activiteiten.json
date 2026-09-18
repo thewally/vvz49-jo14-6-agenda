@@ -1,0 +1,49 @@
+[
+  {
+    "id": "training-dinsdag",
+    "titel": "Training JO14-6",
+    "datum": "2026-09-22",
+    "begintijd": "18:30",
+    "eindtijd": "19:45",
+    "wekelijks_tot": "2026-12-15",
+    "locatie": "Hoofdveld, Sportvereniging Vrienden van Zonnegloren",
+    "adres": "Eemweg 1, 3764DG SOEST",
+    "omschrijving": "Wekelijkse training op dinsdag"
+  },
+  {
+    "id": "training-donderdag-trainingsveld",
+    "titel": "Training JO14-6",
+    "datum": "2026-09-24",
+    "begintijd": "18:00",
+    "eindtijd": "19:15",
+    "wekelijks_tot": "2026-12-03",
+    "behalve": [
+      "2026-10-01",
+      "2026-10-15",
+      "2026-10-29",
+      "2026-11-12",
+      "2026-11-26"
+    ],
+    "locatie": "Trainingsveld, Sportvereniging Vrienden van Zonnegloren",
+    "adres": "Eemweg 1, 3764DG SOEST",
+    "omschrijving": "Training op donderdag (trainingsveld, om de week afwisselend)"
+  },
+  {
+    "id": "training-donderdag-hoofdveld",
+    "titel": "Training JO14-6",
+    "datum": "2026-10-01",
+    "begintijd": "18:00",
+    "eindtijd": "19:15",
+    "wekelijks_tot": "2026-12-10",
+    "behalve": [
+      "2026-10-08",
+      "2026-10-22",
+      "2026-11-05",
+      "2026-11-19",
+      "2026-12-03"
+    ],
+    "locatie": "Hoofdveld, Sportvereniging Vrienden van Zonnegloren",
+    "adres": "Eemweg 1, 3764DG SOEST",
+    "omschrijving": "Training op donderdag (hoofdveld, om de week afwisselend)"
+  }
+]

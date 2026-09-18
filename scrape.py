@@ -19,22 +19,28 @@ wedstrijd zelf. Per wedstrijd wordt ook het adres van de accommodatie
 opgehaald (wedstrijd-informatie) zodat de LOCATION een kant-en-klare
 Google Maps-link krijgt, in plaats van te gokken op basis van de
 sportparknaam. Alles wordt bijgehouden in matches.json zodat wedstrijden
-niet verdwijnen zodra een fase/poule wisselt. Daarna wordt matches.ics
-gegenereerd voor abonnement in Google Calendar.
+niet verdwijnen zodra een fase/poule wisselt.
+
+Daarnaast worden handmatig bijgehouden activiteiten (trainingen,
+toernooien, teamuitjes, ...) uit overige-activiteiten.json toegevoegd.
+Zie README.md voor het formaat. Daarna wordt matches.ics gegenereerd voor
+abonnement in Google Calendar.
 """
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 API_BASE = "https://data.sportlink.com"
 CLIENT_ID = os.environ.get("SPORTLINK_CLIENT_ID")
 TEAM_NAME = "ST SO Soest/VVZ'49 O14-6"
+UID_NAMESPACE = "vvz49-jo14-6"
 
 # VVZ'49's eigen accommodatie (Sportpark Zonnegloren) -- vast vertrekpunt
 # voor het carpoolen bij uitwedstrijden. De KNVB noemt de accommodatie zelf
@@ -58,6 +64,7 @@ TZ_AMS = ZoneInfo("Europe/Amsterdam")
 
 STATE_PATH = Path(__file__).parent / "matches.json"
 ICS_PATH = Path(__file__).parent / "matches.ics"
+ACTIVITEITEN_PATH = Path(__file__).parent / "overige-activiteiten.json"
 
 
 def api_get(article: str, **params) -> object:
@@ -138,17 +145,125 @@ def merge(state: dict, matches: list[dict], now_iso: str) -> dict:
     return state
 
 
+# ---------------------------------------------------------------------------
+# Overige activiteiten (handmatig, uit overige-activiteiten.json)
+# ---------------------------------------------------------------------------
+
+def fout(msg: str) -> SystemExit:
+    return SystemExit(f"{ACTIVITEITEN_PATH.name}: {msg}")
+
+
+def load_activiteiten() -> list[dict]:
+    if not ACTIVITEITEN_PATH.exists():
+        return []
+    try:
+        data = json.loads(ACTIVITEITEN_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise fout(f"geen geldige JSON ({exc})")
+    if not isinstance(data, list):
+        raise fout("moet een lijst [ ... ] met activiteiten zijn")
+    gezien = set()
+    for act in data:
+        if not isinstance(act, dict):
+            raise fout("elke activiteit moet een object { ... } zijn")
+        act_id = act.get("id")
+        if not act_id or not re.fullmatch(r"[A-Za-z0-9_-]+", str(act_id)):
+            raise fout(f"ongeldig of ontbrekend 'id' bij {act!r} (alleen letters, cijfers, - en _)")
+        if act_id in gezien:
+            raise fout(f"id '{act_id}' komt meerdere keren voor")
+        gezien.add(act_id)
+        if not act.get("titel") or not act.get("datum"):
+            raise fout(f"activiteit '{act_id}' mist 'titel' of 'datum'")
+    return data
+
+
+def activiteit_events(act: dict, dtstamp: str, cutoff: date, horizon: date) -> list[str]:
+    act_id = act["id"]
+    try:
+        eerste = date.fromisoformat(act["datum"])
+        einddatum = date.fromisoformat(act["einddatum"]) if act.get("einddatum") else eerste
+        tot_str = act.get("herhalen_tot") or act.get("wekelijks_tot")  # wekelijks_tot = oude naam
+        tot = date.fromisoformat(tot_str) if tot_str else None
+        behalve = {date.fromisoformat(d) for d in act.get("behalve", [])}
+        begintijd = time.fromisoformat(act["begintijd"]) if act.get("begintijd") else None
+        eindtijd = time.fromisoformat(act["eindtijd"]) if act.get("eindtijd") else None
+    except (ValueError, TypeError) as exc:
+        raise fout(f"activiteit '{act_id}': ongeldige datum/tijd ({exc}); gebruik JJJJ-MM-DD en UU:MM")
+
+    duur_dagen = (einddatum - eerste).days
+    if duur_dagen < 0:
+        raise fout(f"activiteit '{act_id}': 'einddatum' ligt voor 'datum'")
+    elke_weken = act.get("elke_weken", 1)
+    if not isinstance(elke_weken, int) or isinstance(elke_weken, bool) or elke_weken < 1:
+        raise fout(f"activiteit '{act_id}': 'elke_weken' moet een heel getal >= 1 zijn")
+    # Herhalend zodra er een einddatum voor de reeks of een interval is opgegeven.
+    # Zonder 'herhalen_tot' loopt de reeks door tot 'horizon' (ca. een jaar
+    # vooruit); omdat de feed elke dag opnieuw wordt opgebouwd schuift dat mee.
+    herhalend = tot is not None or "elke_weken" in act
+    if tot is None:
+        tot = horizon if herhalend else eerste
+    elif tot < eerste:
+        raise fout(f"activiteit '{act_id}': 'herhalen_tot' ligt voor 'datum'")
+
+    afgelast = bool(act.get("afgelast"))
+    summary = f"AFGELAST: {act['titel']}" if afgelast else act["titel"]
+    adres = act.get("adres") or ""
+    locatie = ", ".join(p for p in [act.get("locatie") or "", adres] if p)
+    url = act.get("url") or maps_url(act.get("locatie") or "", adres, "")
+    description = "\n".join(p for p in [act.get("omschrijving") or "", f"Route: {url}" if url else ""] if p)
+
+    lines: list[str] = []
+    dag = eerste
+    while dag <= tot:
+        if dag not in behalve and dag + timedelta(days=duur_dagen) >= cutoff:
+            uid = f"activiteit-{act_id}-{dag:%Y%m%d}" if herhalend else f"activiteit-{act_id}"
+            if begintijd:
+                start = datetime.combine(dag, begintijd, TZ_AMS)
+                eind = (datetime.combine(dag + timedelta(days=duur_dagen), eindtijd, TZ_AMS)
+                        if eindtijd else start + timedelta(hours=1))
+                if eind <= start:
+                    raise fout(f"activiteit '{act_id}': eindtijd ligt niet na begintijd")
+            else:
+                # Hele dag; DTEND is bij VALUE=DATE exclusief (dag erna).
+                start = dag
+                eind = dag + timedelta(days=duur_dagen + 1)
+            lines += vevent(
+                uid=f"{uid}@{UID_NAMESPACE}",
+                dtstamp=dtstamp,
+                start=start,
+                end=eind,
+                summary=summary,
+                location=locatie,
+                description=description,
+                url=url,
+                cancelled=afgelast,
+            )
+        dag += timedelta(weeks=elke_weken)
+    return lines
+
+
+# ---------------------------------------------------------------------------
+# ICS
+# ---------------------------------------------------------------------------
+
 def ics_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", "\\n")
 
 
-def vevent(uid: str, dtstamp: str, start: datetime, end: datetime, summary: str, location: str = "", description: str = "", url: str = "", cancelled: bool = False) -> list[str]:
+def ics_moment(prop: str, value: date) -> str:
+    # Let op: datetime is een subklasse van date, dus eerst op datetime testen.
+    if isinstance(value, datetime):
+        return f"{prop}:{value.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    return f"{prop};VALUE=DATE:{value.strftime('%Y%m%d')}"
+
+
+def vevent(uid: str, dtstamp: str, start: date, end: date, summary: str, location: str = "", description: str = "", url: str = "", cancelled: bool = False) -> list[str]:
     lines = [
         "BEGIN:VEVENT",
         f"UID:{uid}",
         f"DTSTAMP:{dtstamp}",
-        f"DTSTART:{start.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
-        f"DTEND:{end.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+        ics_moment("DTSTART", start),
+        ics_moment("DTEND", end),
         f"SUMMARY:{ics_escape(summary)}",
     ]
     if location:
@@ -166,8 +281,9 @@ def vevent(uid: str, dtstamp: str, start: datetime, end: datetime, summary: str,
 UIT_MAPS_URL = maps_url(THUIS_CLUBNAAM, THUIS_STRAAT, THUIS_PLAATS)
 
 
-def build_ics(state: dict, now: datetime) -> str:
+def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
     cutoff = (now - timedelta(days=60)).date()
+    horizon = (now + timedelta(days=365)).date()
     dtstamp = now.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     lines = [
         "BEGIN:VCALENDAR",
@@ -212,7 +328,7 @@ def build_ics(state: dict, now: datetime) -> str:
                 gather_location = f"Kleedkamer, {location}" if is_thuis else UIT_VERZAMELPLEK
                 gather_url = match_maps_url if is_thuis else UIT_MAPS_URL
                 lines += vevent(
-                    uid=f"{uid}-verzamelen@vvz49-jo14-6",
+                    uid=f"{uid}-verzamelen@{UID_NAMESPACE}",
                     dtstamp=dtstamp,
                     start=gather_start,
                     end=kickoff,
@@ -222,7 +338,7 @@ def build_ics(state: dict, now: datetime) -> str:
                 )
 
         lines += vevent(
-            uid=f"{uid}@vvz49-jo14-6",
+            uid=f"{uid}@{UID_NAMESPACE}",
             dtstamp=dtstamp,
             start=kickoff,
             end=kickoff + timedelta(minutes=90),
@@ -233,6 +349,9 @@ def build_ics(state: dict, now: datetime) -> str:
             cancelled=cancelled,
         )
 
+    for act in activiteiten:
+        lines += activiteit_events(act, dtstamp, cutoff, horizon)
+
     lines.append("END:VCALENDAR")
     return "\r\n".join(lines) + "\r\n"
 
@@ -242,23 +361,28 @@ def main() -> int:
         print("SPORTLINK_CLIENT_ID ontbreekt (zet 'm als env var of repository secret).", file=sys.stderr)
         return 1
 
+    # Eerst de activiteiten valideren: een tikfout moet de run duidelijk laten
+    # falen (GitHub stuurt dan een mail) in plaats van stilletjes items te missen.
+    activiteiten = load_activiteiten()
+
     now = datetime.now(TZ_AMS)
+    state = load_state()
     try:
         teamcode = find_teamcode()
         matches = fetch_schedule(teamcode)
+        print(f"Teamcode {teamcode}: {len(matches)} wedstrijd(en) opgehaald.")
+        state = merge(state, matches, now.isoformat())
+        save_state(state)
     except (urllib.error.URLError, RuntimeError) as exc:
-        print(f"Kon programma niet ophalen: {exc}", file=sys.stderr)
-        return 0  # laat matches.json/matches.ics ongewijzigd staan
+        # Sportlink onbereikbaar: bestaande wedstrijden uit matches.json houden,
+        # maar de agenda wel opnieuw opbouwen zodat gewijzigde activiteiten
+        # toch doorkomen.
+        print(f"Kon programma niet ophalen: {exc} -- bestaande wedstrijden worden gebruikt.", file=sys.stderr)
 
-    print(f"Teamcode {teamcode}: {len(matches)} wedstrijd(en) opgehaald.")
-
-    state = load_state()
-    state = merge(state, matches, now.isoformat())
-    save_state(state)
-
-    ics = build_ics(state, now)
+    ics = build_ics(state, activiteiten, now)
     ICS_PATH.write_text(ics)
-    print(f"matches.ics geschreven met {ics.count('BEGIN:VEVENT')} agenda-item(en) totaal.")
+    print(f"matches.ics geschreven met {ics.count('BEGIN:VEVENT')} agenda-item(en) totaal "
+          f"({len(activiteiten)} overige activiteit(en) in {ACTIVITEITEN_PATH.name}).")
     return 0
 
 
