@@ -76,7 +76,7 @@
     font-size: .85rem;
     white-space: nowrap;
   }
-  a.button {
+  a.button, button.button {
     display: inline-block;
     background: var(--accent);
     color: var(--accent-fg);
@@ -85,6 +85,14 @@
     padding: .55rem 1rem;
     border-radius: 8px;
     font-size: .9rem;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .hint {
+    color: var(--muted);
+    font-size: .85rem;
+    margin: .6rem 0 1.75rem;
   }
   details {
     background: var(--card);
@@ -111,14 +119,20 @@
   <h1>Speelagenda VVZ'49 JO14-6</h1>
   <p class="lead">
     Automatisch bijgewerkte agenda-feed (.ics) voor <strong>ST SO Soest/VVZ'49 O14-6</strong>
-    (de combinatie tussen SO Soest en VVZ'49), voor gebruik als abonnement in
-    Google Calendar, Outlook of Apple Calendar.
+    (de combinatie tussen SO Soest en VVZ'49). Naast de officiële wedstrijden uit
+    Sportlink staan er ook handmatig toegevoegde trainingen, toernooien en teamuitjes
+    in, voor gebruik als abonnement in Google Calendar, Outlook of Apple Calendar.
   </p>
 
   <div class="url-box">
     <code id="ics-url">https://thewally.github.io/vvz49-jo14-6-agenda/matches.ics</code>
   </div>
-  <a class="button" href="https://calendar.google.com/calendar/r/settings/addbyurl" target="_blank" rel="noopener">Toevoegen aan Google Calendar</a>
+  <button class="button" id="gcal-btn" type="button">Toevoegen aan Google Calendar</button>
+  <p class="hint" id="gcal-hint">
+    De link hierboven wordt gekopieerd en de instellingenpagina van Google Calendar
+    opent in een nieuw tabblad. Plak de link daar in het veld <strong>"URL van agenda"</strong>
+    en klik op <strong>Agenda toevoegen</strong>.
+  </p>
 
   <h2>Wat staat er in de agenda</h2>
   <div class="card">
@@ -126,6 +140,7 @@
       <li><strong>Verzamelen: …</strong> — van verzameltijd tot aanvangstijd</li>
       <li><strong>Speeltijden</strong></li>
       <li><strong>Thuisteam - Uitteam</strong> — de wedstrijd zelf, incl. scheidsrechter en veld</li>
+      <li><strong>Overige activiteiten</strong> — trainingen, toernooien en teamuitjes, los toegevoegd naast het Sportlink-programma</li>
     </ul>
   </div>
 
@@ -134,10 +149,11 @@
   <details open>
     <summary>Google Calendar</summary>
     <ol>
-      <li>Ga naar <a href="https://calendar.google.com/calendar/r/settings/addbyurl" target="_blank" rel="noopener">calendar.google.com/calendar/r/settings/addbyurl</a></li>
-      <li>Plak de URL hierboven</li>
+      <li>Klik hierboven op <strong>Toevoegen aan Google Calendar</strong> — de link wordt gekopieerd en de instellingenpagina opent vanzelf</li>
+      <li>Plak de link in het veld <strong>"URL van agenda"</strong></li>
       <li>Klik op <strong>Agenda toevoegen</strong></li>
     </ol>
+    <p>Lukt automatisch kopiëren niet (bijvoorbeeld door browserinstellingen)? Kopieer de link dan met de hand uit het grijze vak hierboven.</p>
     <p>De agenda wordt elke ochtend en avond automatisch bijgewerkt. Google Calendar ververst de feed vervolgens op zijn eigen tempo (meestal binnen 12-24 uur).</p>
   </details>
 
@@ -180,5 +196,36 @@
     Broncode: <a href="https://github.com/thewally/vvz49-jo14-6-agenda">github.com/thewally/vvz49-jo14-6-agenda</a>
   </footer>
 </main>
+<script>
+(function () {
+  var btn = document.getElementById('gcal-btn');
+  var urlEl = document.getElementById('ics-url');
+  if (!btn || !urlEl) return;
+  var defaultText = btn.textContent;
+
+  function openSettings() {
+    window.open('https://calendar.google.com/calendar/r/settings/addbyurl', '_blank', 'noopener');
+  }
+
+  function markCopied() {
+    btn.textContent = '✓ Link gekopieerd!';
+    setTimeout(function () { btn.textContent = defaultText; }, 4000);
+  }
+
+  btn.addEventListener('click', function () {
+    var url = urlEl.textContent.trim();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        markCopied();
+        openSettings();
+      }, function () {
+        openSettings();
+      });
+    } else {
+      openSettings();
+    }
+  });
+})();
+</script>
 </body>
 </html>
