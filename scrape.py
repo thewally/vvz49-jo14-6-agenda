@@ -76,6 +76,7 @@ TZ_AMS = ZoneInfo("Europe/Amsterdam")
 STATE_PATH = Path(__file__).parent / "matches.json"
 ICS_PATH = Path(__file__).parent / "matches.ics"
 ACTIVITEITEN_PATH = Path(__file__).parent / "overige-activiteiten.json"
+VERWACHTE_SPEELDAGEN_PATH = Path(__file__).parent / "verwachte_speeldagen.json"
 
 
 def api_get(article: str, **params) -> object:
@@ -186,6 +187,20 @@ def load_activiteiten() -> list[dict]:
         if not act.get("titel") or not act.get("datum"):
             raise fout(f"activiteit '{act_id}' mist 'titel' of 'datum'")
     return data
+
+
+def load_verwachte_speeldagen() -> list[str]:
+    """Leest de handmatig bijgehouden KNVB-speeldagen uit
+    verwachte_speeldagen.json (zie dat bestand voor toelichting en bron).
+    Ontbreekt het bestand of is het leeg, dan gebeurt er simpelweg niets
+    extra's (geen fout)."""
+    if not VERWACHTE_SPEELDAGEN_PATH.exists():
+        return []
+    try:
+        data = json.loads(VERWACHTE_SPEELDAGEN_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    return data.get("speeldagen") or []
 
 
 def activiteit_locatie(act: dict) -> tuple[str, str]:
@@ -310,7 +325,7 @@ def vevent(uid: str, dtstamp: str, start: date, end: date, summary: str, locatio
 THUIS_MAPS_URL = maps_url(THUIS_CLUBNAAM, THUIS_STRAAT, THUIS_PLAATS)
 
 
-def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
+def build_ics(state: dict, activiteiten: list[dict], now: datetime, verwachte_speeldagen: list[str] | None = None) -> str:
     cutoff = (now - timedelta(days=60)).date()
     horizon = (now + timedelta(days=365)).date()
     dtstamp = now.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -321,8 +336,10 @@ def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
         "CALSCALE:GREGORIAN",
         "X-WR-CALNAME:ST SO Soest/VVZ'49 O14-6",
     ]
+    bekende_speeldata: set = set()
     for uid, entry in sorted(state.items(), key=lambda kv: kv[1]["wedstrijddatum"]):
         kickoff = datetime.fromisoformat(entry["wedstrijddatum"]).astimezone(TZ_AMS)
+        bekende_speeldata.add(kickoff.date())
         if kickoff.date() < cutoff:
             continue
 
@@ -393,6 +410,27 @@ def build_ics(state: dict, activiteiten: list[dict], now: datetime) -> str:
     for act in activiteiten:
         lines += activiteit_events(act, dtstamp, cutoff, horizon)
 
+    # Plaatshouders voor KNVB-speeldagen (zie verwachte_speeldagen.json) die nog
+    # niet door Sportlink zijn ingevuld met een concrete wedstrijd. Zo staat de
+    # dag alvast geblokkeerd in de agenda; zodra Sportlink 'm publiceert (en dus
+    # in bekende_speeldata terechtkomt), verdwijnt de plaatshouder vanzelf.
+    for datum_str in verwachte_speeldagen or []:
+        try:
+            dag = date.fromisoformat(datum_str)
+        except ValueError:
+            continue
+        if dag < cutoff or dag in bekende_speeldata:
+            continue
+        lines += vevent(
+            uid=f"verwacht-{datum_str}@{UID_NAMESPACE}",
+            dtstamp=dtstamp,
+            start=dag,
+            end=dag + timedelta(days=1),
+            summary=f"Speeldag nog niet ingepland ({AGENDA_LABEL})",
+            description="Volgens de KNVB-speeldagenkalender staat hier een wedstrijd "
+                         "gepland, maar Sportlink heeft de tegenstander/tijd nog niet gepubliceerd.",
+        )
+
     lines.append("END:VCALENDAR")
     return "\r\n".join(lines) + "\r\n"
 
@@ -405,6 +443,7 @@ def main() -> int:
     # Eerst de activiteiten valideren: een tikfout moet de run duidelijk laten
     # falen (GitHub stuurt dan een mail) in plaats van stilletjes items te missen.
     activiteiten = load_activiteiten()
+    verwachte_speeldagen = load_verwachte_speeldagen()
 
     now = datetime.now(TZ_AMS)
     state = load_state()
@@ -420,7 +459,7 @@ def main() -> int:
         # toch doorkomen.
         print(f"Kon programma niet ophalen: {exc} -- bestaande wedstrijden worden gebruikt.", file=sys.stderr)
 
-    ics = build_ics(state, activiteiten, now)
+    ics = build_ics(state, activiteiten, now, verwachte_speeldagen)
     ICS_PATH.write_text(ics)
     print(f"matches.ics geschreven met {ics.count('BEGIN:VEVENT')} agenda-item(en) totaal "
           f"({len(activiteiten)} overige activiteit(en) in {ACTIVITEITEN_PATH.name}).")
