@@ -149,7 +149,18 @@
       opent in een nieuw tabblad. Plak de link daar in het veld <strong>"URL van agenda"</strong>
       en klik op <strong>Agenda toevoegen</strong>.
     </p>
-    <p class="hint">Op Android opent dit altijd als webpagina in de browser (Chrome), nooit in de Google Agenda-app zelf — die kan geen agenda toevoegen via een URL.</p>
+    <p class="hint">
+      <strong>Werkt de knop niet op je telefoon (Android)?</strong> Dat kan gebeuren: Google Agenda is op Android
+      geregistreerd als "geverifieerde app" voor calendar.google.com, waardoor het openen in de Agenda-app soms niet
+      te voorkomen is vanaf deze pagina. Bovendien bestaat "toevoegen via URL" sowieso niet in de Agenda-app zelf,
+      alleen in de browser.
+    </p>
+    <p class="hint">Twee manieren die wél altijd werken:</p>
+    <ol>
+      <li>Open deze pagina één keer op een laptop of pc en voeg de agenda daar toe — hij verschijnt daarna vanzelf ook op je telefoon.</li>
+      <li>Gebruik op je telefoon een losse app die rechtstreeks agenda-URL's ondersteunt, zoals <strong>ICSx5</strong> (gratis, Play Store), en vul daar de link hierboven in.</li>
+    </ol>
+    <p class="hint">Wil je de knop hierboven toch los laten werken op je telefoon? Zet in Android bij <strong>Instellingen → Apps → Google Agenda → Openen bij standaard</strong> de optie <strong>"Ondersteunde links openen"</strong> uit.</p>
     <p>Lukt automatisch kopiëren niet (bijvoorbeeld door browserinstellingen)? Kopieer de link dan met de hand uit het grijze vak hierboven.</p>
     <p>De agenda wordt elke ochtend en avond automatisch bijgewerkt. Google Calendar ververst de feed vervolgens op zijn eigen tempo (meestal binnen 12-24 uur).</p>
   </details>
@@ -202,13 +213,10 @@
   if (!urlEl) return;
 
   // Op Android claimen de Google Agenda-app en de Outlook-app dezelfde
-  // domeinen als hun webversie ("geverifieerde App Links"). Een gewone
-  // navigatie naar calendar.google.com of outlook.live.com wordt daardoor
-  // door Android zelf afgevangen en direct in de app geopend -- vóórdat er
-  // een webpagina laadt -- terwijl die apps geen "agenda toevoegen via URL"
-  // hebben. Door de link te verpakken als Chrome-intent met een expliciet
-  // package forceren we dat 'ie altijd als gewone webpagina in de browser
-  // opent, net als op desktop.
+  // domeinen als hun webversie ("geverifieerde App Links"). Dit is een
+  // best-effort poging om Android/Chrome naar de browser te sturen i.p.v.
+  // de app -- werkt niet in alle gevallen, zie de tekst in de kaart hierboven
+  // voor alternatieven die wel altijd werken.
   function isAndroid() {
     return /Android/i.test(navigator.userAgent);
   }
