@@ -149,6 +149,7 @@
       opent in een nieuw tabblad. Plak de link daar in het veld <strong>"URL van agenda"</strong>
       en klik op <strong>Agenda toevoegen</strong>.
     </p>
+    <p class="hint">Op Android opent dit altijd als webpagina in de browser (Chrome), nooit in de Google Agenda-app zelf — die kan geen agenda toevoegen via een URL.</p>
     <p>Lukt automatisch kopiëren niet (bijvoorbeeld door browserinstellingen)? Kopieer de link dan met de hand uit het grijze vak hierboven.</p>
     <p>De agenda wordt elke ochtend en avond automatisch bijgewerkt. Google Calendar ververst de feed vervolgens op zijn eigen tempo (meestal binnen 12-24 uur).</p>
   </details>
@@ -200,12 +201,31 @@
   var urlEl = document.getElementById('ics-url');
   if (!urlEl) return;
 
+  // Op Android claimen de Google Agenda-app en de Outlook-app dezelfde
+  // domeinen als hun webversie ("geverifieerde App Links"). Een gewone
+  // navigatie naar calendar.google.com of outlook.live.com wordt daardoor
+  // door Android zelf afgevangen en direct in de app geopend -- vóórdat er
+  // een webpagina laadt -- terwijl die apps geen "agenda toevoegen via URL"
+  // hebben. Door de link te verpakken als Chrome-intent met een expliciet
+  // package forceren we dat 'ie altijd als gewone webpagina in de browser
+  // opent, net als op desktop.
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent);
+  }
+  function androidBrowserUrl(url) {
+    var stripped = url.replace(/^https?:\/\//, '');
+    return 'intent://' + stripped +
+      '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' +
+      encodeURIComponent(url) + ';end';
+  }
+
   function copyThenOpen(btn, destination) {
     var url = urlEl.textContent.trim();
     var defaultText = btn.textContent;
 
     function open() {
-      window.open(destination, '_blank', 'noopener');
+      var target = isAndroid() ? androidBrowserUrl(destination) : destination;
+      window.open(target, '_blank', 'noopener');
     }
     function markCopied() {
       btn.textContent = '✓ Link gekopieerd!';
