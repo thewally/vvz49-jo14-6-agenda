@@ -6,8 +6,20 @@
     "begintijd": "17:30",
     "eindtijd": "18:00",
     "wekelijks_tot": "2026-12-15",
+    "behalve": [
+      "2026-10-27"
+    ],
     "locatie": "Sportvereniging Vrienden van Zonnegloren",
     "omschrijving": "Wekelijkse keeperstraining op dinsdag"
+  },
+  {
+    "id": "keeperstraining-donderdag-2026-10-29",
+    "titel": "Keeperstraining JO14-6",
+    "datum": "2026-10-29",
+    "begintijd": "17:30",
+    "eindtijd": "18:00",
+    "locatie": "Sportvereniging Vrienden van Zonnegloren",
+    "omschrijving": "Keeperstraining deze week verplaatst van dinsdag naar donderdag"
   },
   {
     "id": "training-dinsdag",
